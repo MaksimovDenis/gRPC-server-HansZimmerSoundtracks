@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"projectAuth/sso/internal/app"
@@ -31,9 +32,17 @@ func main() {
 
 	go application.GRPCSrv.MustRun()
 
-	//TODO: иницилизация приложения (app)
+	//Start HTTP server to serve HTML page
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "sso/cmd/templates/index.html") //Serve our HTML file
+	})
 
-	//TODO: запустить gRPC-сервер приложение
+	go func() {
+		err := http.ListenAndServe(":8080", nil)
+		if err != nil {
+			log.Error("Failed to start HTTP server", slog.String("error", err.Error()))
+		}
+	}()
 
 	//Grascefull shutdown
 	stop := make(chan os.Signal, 1)
