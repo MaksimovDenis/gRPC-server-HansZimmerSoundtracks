@@ -84,7 +84,7 @@ func InterceptorLogger(l *slog.Logger) grpclog.Logger {
 	})
 }
 
-func handleLogin(w http.ResponseWriter, r *http.Request) {
+func handleLogin(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
 	if r.Method == "POST" {
 
 		// Чтение данных из тела запроса
@@ -110,8 +110,8 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Println(password)
 
-		/*// Создание экземпляра Client
-		client, err := New(context.Background(), log, "localhost:44044", time.Second, 3)
+		// Создание экземпляра Client
+		client, err := New(context.Background(), logger, "localhost:44044", time.Second, 3)
 		if err != nil {
 			http.Error(w, "Failed to create gRPC client", http.StatusInternalServerError)
 			return
@@ -128,7 +128,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to login", http.StatusInternalServerError)
 			return
 		}
-		fmt.Println(respLogin)*/
+		fmt.Println(respLogin)
 
 	}
 
@@ -141,7 +141,9 @@ func Dial(s string, dialOption grpc.DialOption) {
 func handlRequest(log *slog.Logger) {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("sso/cmd/static"))))
 	http.HandleFunc("/", index)
-	http.HandleFunc("/login", handleLogin)
+	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		handleLogin(w, r, log) // передача логгера в функцию handleLogin
+	})
 
 	log.Info("starting web-server")
 	err := http.ListenAndServe(":8080", nil)
