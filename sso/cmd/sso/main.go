@@ -1,22 +1,154 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	ssov1 "projectAuth/protos/gen/go/sso"
 	"projectAuth/sso/internal/app"
 	"projectAuth/sso/internal/config"
 	"projectAuth/sso/internal/lib/logger/handlers/slogpretty"
 	"syscall"
+	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+
+	grpclog "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
+	grpcretry "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/retry"
 )
 
 const (
-	envLocal = "local"
-	envDev   = "Dev"
-	envProd  = "Prod"
+	envLocal       = "local"
+	envDev         = "Dev"
+	envProd        = "Prod"
+	emptyAppId     = 0
+	appID          = 1
+	appSecret      = "test-secret"
+	passDefaultLen = 10
 )
+
+type Client struct {
+	api ssov1.AuthClient
+	log *slog.Logger
+}
+
+func index(w http.ResponseWriter, r *http.Request) {
+	tmpl, _ := template.ParseFiles("sso/cmd/templates/index.html")
+	tmpl.ExecuteTemplate(w, "index", nil)
+}
+
+func New(ctx context.Context,
+	log *slog.Logger,
+	addr string,
+	timeout time.Duration,
+	retriesCount int,
+) (*Client, error) {
+	const op = "grpc.New"
+
+	retryOpts := []grpcretry.CallOption{
+		grpcretry.WithCodes(codes.NotFound, codes.Aborted, codes.DeadlineExceeded),
+		grpcretry.WithMax(uint(retriesCount)),
+		grpcretry.WithPerRetryTimeout(timeout),
+	}
+
+	logOpts := []grpclog.Option{
+		grpclog.WithLogOnEvents(grpclog.PayloadReceived, grpclog.PayloadSent),
+	}
+
+	cc, err := grpc.DialContext(ctx, addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(
+			grpclog.UnaryClientInterceptor(InterceptorLogger(log), logOpts...),
+			grpcretry.UnaryClientInterceptor(retryOpts...),
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &Client{
+		api: ssov1.NewAuthClient(cc),
+	}, nil
+}
+
+func InterceptorLogger(l *slog.Logger) grpclog.Logger {
+	return grpclog.LoggerFunc(func(ctx context.Context, lvl grpclog.Level, msg string, fields ...any) {
+		l.Log(ctx, slog.Level(lvl), msg, fields...)
+	})
+}
+
+func handleLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+
+		// Чтение данных из тела запроса
+		var requestData map[string]interface{}
+		err := json.NewDecoder(r.Body).Decode(&requestData)
+		if err != nil {
+			http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+			return
+		}
+
+		// Получение значений email и password
+		email, ok := requestData["email"].(string)
+		if !ok {
+			http.Error(w, "Email field is missing or invalid", http.StatusBadRequest)
+			return
+		}
+		fmt.Println(email)
+
+		password, ok := requestData["password"].(string)
+		if !ok {
+			http.Error(w, "Password field is missing or invalid", http.StatusBadRequest)
+			return
+		}
+		fmt.Println(password)
+
+		/*// Создание экземпляра Client
+		client, err := New(context.Background(), log, "localhost:44044", time.Second, 3)
+		if err != nil {
+			http.Error(w, "Failed to create gRPC client", http.StatusInternalServerError)
+			return
+		}
+
+		// Вызов метода для логина с использованием клиента
+		ctx := context.Background()
+		respLogin, err := client.api.Login(ctx, &ssov1.LoginRequest{
+			Email:    email,
+			Password: password,
+			AppId:    appID,
+		})
+		if err != nil {
+			http.Error(w, "Failed to login", http.StatusInternalServerError)
+			return
+		}
+		fmt.Println(respLogin)*/
+
+	}
+
+}
+
+func Dial(s string, dialOption grpc.DialOption) {
+	panic("unimplemented")
+}
+
+func handlRequest(log *slog.Logger) {
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("sso/cmd/static"))))
+	http.HandleFunc("/", index)
+	http.HandleFunc("/login", handleLogin)
+
+	log.Info("starting web-server")
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Error("Failed to start HTTP server", slog.String("error", err.Error()))
+	}
+}
 
 func main() {
 	cfg := config.MustLoad()
@@ -33,16 +165,7 @@ func main() {
 	go application.GRPCSrv.MustRun()
 
 	//Start HTTP server to serve HTML page
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "sso/cmd/templates/index.html") //Serve our HTML file
-	})
-
-	go func() {
-		err := http.ListenAndServe(":8080", nil)
-		if err != nil {
-			log.Error("Failed to start HTTP server", slog.String("error", err.Error()))
-		}
-	}()
+	handlRequest(log)
 
 	//Grascefull shutdown
 	stop := make(chan os.Signal, 1)

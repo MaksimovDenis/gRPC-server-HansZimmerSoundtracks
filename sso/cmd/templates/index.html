@@ -1,3 +1,4 @@
+{{ define "index" }}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,15 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta http-equiv="Cache-Control" content="max-age=7200">
     <title>LogIn</title>
-	<link rel="stylesheet" href="/home/denis/go/src/projectAuth/sso/cmd/static/css/style.css">
-	<script src="/home/denis/go/src/projectAuth/sso/cmd/static/js/script.js"></script>
+    <script
+  src="https://code.jquery.com/jquery-3.7.1.js"
+  integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4="
+  crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body> 
     <div class="form-structor">
         <div class="signup">
             <h2 class="form-title" id="signup"><span>or</span>Sign up</h2>
             <div class="form-holder">
-                <input type="text" class="input" placeholder="Name" />
                 <input type="email" class="input" placeholder="Email" />
                 <input type="password" class="input" placeholder="Password" />
             </div>
@@ -22,13 +26,19 @@
         <div class="login slide-up">
             <div class="center">
                 <h2 class="form-title" id="login"><span>or</span>Log in</h2>
-                <div class="form-holder">
-                    <input type="email" class="input" placeholder="Email" />
-                    <input type="password" class="input" placeholder="Password" />
-                </div>
-                <button class="submit-btn">Log in</button>
+                <form class="login-form" method="POST" action="/login">
+                    <div class="form-holder">
+                        <input type="email" class="input" placeholder="Email" name="email"/>
+                        <input type="password" class="input" placeholder="Password" name="password"/>
+                    </div>
+                    <button class="submit-btn">Log in</button>
+            </form>
             </div>
         </div>
     </div>
+        <div>Email: <span id="emailValue"></span></div>
+    <div>Password: <span id="passwordValue"></span></div>
+    <script src="/static/js/script.js"></script>
  </body> 
 </html>
+{{ end }}

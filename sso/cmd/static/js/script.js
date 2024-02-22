@@ -26,3 +26,37 @@ signupBtn.addEventListener('click', (e) => {
 		}
 	});
 });
+
+$(document).ready(function() {
+    $('.login').submit(function(event) {
+        event.preventDefault(); // Предотвращаем стандартное поведение формы (отправку)
+
+        var email = $('.login input[type="email"]').val();
+        var password = $('.login input[type="password"]').val();
+        
+        console.log("Email:", email);
+        console.log("Password:", password);
+        
+        // Отправляем AJAX запрос на сервер
+        $.ajax({
+            type: "POST", // Метод запроса
+            url: "/login", // URL адрес обработчика на сервере
+            data: JSON.stringify({ email: email, password: password }), // Данные для отправки (преобразованные в JSON строку)
+            contentType: "application/json", // Тип содержимого запроса
+            success: function(response) {
+                // Обработка успешного ответа от сервера
+                console.log("Response from server:", response);
+            },
+            error: function(xhr, status, error) {
+                // Обработка ошибки
+                console.error("Error:", error);
+            }
+        });
+        
+        // Обновляем значения элементов на странице (это можно удалить, если не нужно)
+        $('#emailValue').text(email);
+        $('#passwordValue').text(password);
+        
+        // В этом месте вы можете выполнить другие операции после отправки данных на сервер
+    });
+});
