@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/golang-jwt/jwt"
 	grpclog "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	grpcretry "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/retry"
 )
@@ -32,6 +33,7 @@ const (
 	appID          = 1
 	appSecret      = "test-secret"
 	passDefaultLen = 10
+	deltaSeconds   = 1
 )
 
 type Client struct {
@@ -84,6 +86,55 @@ func InterceptorLogger(l *slog.Logger) grpclog.Logger {
 	})
 }
 
+func handleRegister(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
+	if r.Method == "POST" {
+
+		// Чтение данных из тела запроса
+		var requestData map[string]interface{}
+		err := json.NewDecoder(r.Body).Decode(&requestData)
+		if err != nil {
+			http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+			return
+		}
+
+		// Получение значений email и password
+		email, ok := requestData["email"].(string)
+		if !ok {
+			http.Error(w, "Email field is missing or invalid", http.StatusBadRequest)
+			return
+		}
+		fmt.Println(email)
+
+		password, ok := requestData["password"].(string)
+		if !ok {
+			http.Error(w, "Password field is missing or invalid", http.StatusBadRequest)
+			return
+		}
+		fmt.Println(password)
+
+		// Создание экземпляра Client
+		client, err := New(context.Background(), logger, "localhost:44044", time.Second, 3)
+		if err != nil {
+			http.Error(w, "Failed to create gRPC client", http.StatusInternalServerError)
+			return
+		}
+
+		// Вызов метода для логина с использованием клиента
+		ctx := context.Background()
+		respReg, err := client.api.Register(ctx, &ssov1.RegisterRequest{
+			Email:    email,
+			Password: password,
+		})
+		if err != nil {
+			http.Error(w, "Failed to login", http.StatusInternalServerError)
+			return
+		}
+		fmt.Println(respReg)
+
+	}
+
+}
+
 func handleLogin(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
 	if r.Method == "POST" {
 
@@ -128,10 +179,35 @@ func handleLogin(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
 			http.Error(w, "Failed to login", http.StatusInternalServerError)
 			return
 		}
-		fmt.Println(respLogin)
 
+		token := respLogin.GetToken()
+
+		// Передаем токен в контекст запроса
+		ctx = context.WithValue(r.Context(), "token", token)
+		r = r.WithContext(ctx)
 	}
 
+}
+
+func tokenMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Извлекаем токен из контекста запроса
+		token, ok := r.Context().Value("token").(string)
+		fmt.Println(token)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		tokenParsed, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+			return []byte(appSecret), nil
+		})
+		if err != nil || !tokenParsed.Valid {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func Dial(s string, dialOption grpc.DialOption) {
@@ -141,6 +217,10 @@ func Dial(s string, dialOption grpc.DialOption) {
 func handlRequest(log *slog.Logger) {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("sso/cmd/static"))))
 	http.HandleFunc("/", index)
+	http.Handle("/batman", tokenMiddleware(http.DefaultServeMux))
+	http.HandleFunc("/signup", func(w http.ResponseWriter, r *http.Request) {
+		handleRegister(w, r, log) // передача логгера в функцию handleLogin
+	})
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		handleLogin(w, r, log) // передача логгера в функцию handleLogin
 	})
