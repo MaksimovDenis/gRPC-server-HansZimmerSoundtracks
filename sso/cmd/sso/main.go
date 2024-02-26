@@ -13,6 +13,7 @@ import (
 	"projectAuth/sso/internal/app"
 	"projectAuth/sso/internal/config"
 	"projectAuth/sso/internal/lib/logger/handlers/slogpretty"
+	yandexstorage "projectAuth/sso/storage/yandexStorage"
 	"syscall"
 	"time"
 
@@ -139,7 +140,6 @@ func handleRegister(w http.ResponseWriter, r *http.Request, logger *slog.Logger)
 			return
 		}
 		fmt.Println(respReg)
-
 	}
 
 }
@@ -190,7 +190,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
 		}
 
 		token = respLogin.GetToken()
-		tokenExpiration = time.Now().Add(time.Second * 10)
+		tokenExpiration = time.Now().Add(time.Hour)
 	}
 
 }
@@ -199,7 +199,7 @@ func Dial(s string, dialOption grpc.DialOption) {
 	panic("unimplemented")
 }
 
-func index(w http.ResponseWriter, r *http.Request) {
+func indexHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, _ := template.ParseFiles("sso/cmd/templates/index.html")
 	tmpl.ExecuteTemplate(w, "index", nil)
 }
@@ -211,9 +211,61 @@ func interstellarHandler(w http.ResponseWriter, r *http.Request) {
 	case time.Now().After(tokenExpiration):
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	default:
-		imageInterstellar := imageURLs[3]
+		image := imageURLs[3]
 		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/interstellar.html", "sso/cmd/templates/player.html")
-		tmpl.ExecuteTemplate(w, "interstellar", imageInterstellar)
+		tmpl.ExecuteTemplate(w, "interstellar", image)
+	}
+}
+
+func batmanHandler(w http.ResponseWriter, r *http.Request) {
+	switch {
+	case token == "":
+		http.Error(w, "Unautorized", http.StatusUnauthorized)
+	case time.Now().After(tokenExpiration):
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	default:
+		image := imageURLs[0]
+		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/batman.html", "sso/cmd/templates/player.html")
+		tmpl.ExecuteTemplate(w, "batman", image)
+	}
+}
+
+func duneHandler(w http.ResponseWriter, r *http.Request) {
+	switch {
+	case token == "":
+		http.Error(w, "Unautorized", http.StatusUnauthorized)
+	case time.Now().After(tokenExpiration):
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	default:
+		image := imageURLs[1]
+		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/dune.html", "sso/cmd/templates/player.html")
+		tmpl.ExecuteTemplate(w, "dune", image)
+	}
+}
+
+func inceptionHandler(w http.ResponseWriter, r *http.Request) {
+	switch {
+	case token == "":
+		http.Error(w, "Unautorized", http.StatusUnauthorized)
+	case time.Now().After(tokenExpiration):
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	default:
+		image := imageURLs[2]
+		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/inception.html", "sso/cmd/templates/player.html")
+		tmpl.ExecuteTemplate(w, "inception", image)
+	}
+}
+
+func piratesHandler(w http.ResponseWriter, r *http.Request) {
+	switch {
+	case token == "":
+		http.Error(w, "Unautorized", http.StatusUnauthorized)
+	case time.Now().After(tokenExpiration):
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	default:
+		image := imageURLs[4]
+		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/piratesOfTheCaribbean.html", "sso/cmd/templates/player.html")
+		tmpl.ExecuteTemplate(w, "piratesOfTheCaribbean", image)
 	}
 }
 
@@ -222,18 +274,46 @@ func trackInterstellarHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(interstellarSoundrackUrls)
 }
 
+func trackBatmanHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(batmanSoundrackUrls)
+}
+
+func trackDuneHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(duneSoundrackUrls)
+}
+
+func trackInceptionHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(inceptionSoundrackUrls)
+}
+
+func trackPiratesHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(piratesOfTheCaribbeanSoundrackUrls)
+}
+
 func handlRequest(log *slog.Logger) {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("sso/cmd/static"))))
-	http.HandleFunc("/", index)
+	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/signup", func(w http.ResponseWriter, r *http.Request) {
-		handleRegister(w, r, log) // передача логгера в функцию handleLogin
+		handleRegister(w, r, log)
 	})
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		handleLogin(w, r, log)
 	})
 
-	// Добавьте tokenMiddleware перед вашим обработчиком batmanHandler
 	http.HandleFunc("/interstellar", interstellarHandler)
+	http.HandleFunc("/batman", batmanHandler)
+	http.HandleFunc("/dune", duneHandler)
+	http.HandleFunc("/inception", inceptionHandler)
+	http.HandleFunc("/piratesOfTheCaribbean", piratesHandler)
+	http.HandleFunc("/interstellarSountrack", trackInterstellarHandler)
+	http.HandleFunc("/batmanSountrack", trackBatmanHandler)
+	http.HandleFunc("/duneSountrack", trackDuneHandler)
+	http.HandleFunc("/inceptionSountrack", trackInceptionHandler)
+	http.HandleFunc("/piratesSountrack", trackPiratesHandler)
 
 	log.Info("starting web-server")
 	err := http.ListenAndServe(":8080", nil)
@@ -243,6 +323,7 @@ func handlRequest(log *slog.Logger) {
 }
 
 func main() {
+
 	cfg := config.MustLoad()
 	fmt.Println(cfg)
 
@@ -256,10 +337,12 @@ func main() {
 
 	go application.GRPCSrv.MustRun()
 
-	//Yandex storage
+	go func() {
+		imageURLs, interstellarSoundrackUrls, batmanSoundrackUrls, duneSoundrackUrls, inceptionSoundrackUrls, piratesOfTheCaribbeanSoundrackUrls = yandexstorage.YandexStorage()
+	}()
+
 	//Start HTTP server to serve HTML page
-	handlRequest(log)
-	imageURLs, interstellarSoundrackUrls, batmanSoundrackUrls, duneSoundrackUrls, inceptionSoundrackUrls, piratesOfTheCaribbeanSoundrackUrls = YandexStorage()
+	go handlRequest(log)
 
 	//Grascefull shutdown
 	stop := make(chan os.Signal, 1)
