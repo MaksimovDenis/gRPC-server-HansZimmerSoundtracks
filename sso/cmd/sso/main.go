@@ -20,7 +20,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/golang-jwt/jwt"
 	grpclog "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	grpcretry "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/retry"
 )
@@ -37,14 +36,23 @@ const (
 	start          = "go run sso/cmd/sso/main.go --config=sso/config/local.yaml"
 )
 
+// gRPC token
+var tokenExpiration time.Time
+var token string
+
+// Background images
+var imageURLs []string
+
+// Soundtracks
+var interstellarSoundrackUrls []string
+var batmanSoundrackUrls []string
+var duneSoundrackUrls []string
+var inceptionSoundrackUrls []string
+var piratesOfTheCaribbeanSoundrackUrls []string
+
 type Client struct {
 	api ssov1.AuthClient
 	log *slog.Logger
-}
-
-func index(w http.ResponseWriter, r *http.Request) {
-	tmpl, _ := template.ParseFiles("sso/cmd/templates/index.html")
-	tmpl.ExecuteTemplate(w, "index", nil)
 }
 
 func New(ctx context.Context,
@@ -181,50 +189,52 @@ func handleLogin(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
 			return
 		}
 
-		token := respLogin.GetToken()
-
-		// Передаем токен в контекст запроса
-		ctx = context.WithValue(r.Context(), "token", token)
-		r = r.WithContext(ctx)
+		token = respLogin.GetToken()
+		tokenExpiration = time.Now().Add(time.Second * 10)
 	}
 
-}
-
-func tokenMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Извлекаем токен из контекста запроса
-		token, ok := r.Context().Value("token").(string)
-		fmt.Println(token)
-		if !ok {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		tokenParsed, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-			return []byte(appSecret), nil
-		})
-		if err != nil || !tokenParsed.Valid {
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 func Dial(s string, dialOption grpc.DialOption) {
 	panic("unimplemented")
 }
 
+func index(w http.ResponseWriter, r *http.Request) {
+	tmpl, _ := template.ParseFiles("sso/cmd/templates/index.html")
+	tmpl.ExecuteTemplate(w, "index", nil)
+}
+
+func interstellarHandler(w http.ResponseWriter, r *http.Request) {
+	switch {
+	case token == "":
+		http.Error(w, "Unautorized", http.StatusUnauthorized)
+	case time.Now().After(tokenExpiration):
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	default:
+		imageInterstellar := imageURLs[3]
+		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/interstellar.html", "sso/cmd/templates/player.html")
+		tmpl.ExecuteTemplate(w, "interstellar", imageInterstellar)
+	}
+}
+
+func trackInterstellarHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(interstellarSoundrackUrls)
+}
+
 func handlRequest(log *slog.Logger) {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("sso/cmd/static"))))
 	http.HandleFunc("/", index)
-	http.Handle("/batman", tokenMiddleware(http.DefaultServeMux))
 	http.HandleFunc("/signup", func(w http.ResponseWriter, r *http.Request) {
 		handleRegister(w, r, log) // передача логгера в функцию handleLogin
 	})
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		handleLogin(w, r, log) // передача логгера в функцию handleLogin
+		handleLogin(w, r, log)
 	})
+
+	// Добавьте tokenMiddleware перед вашим обработчиком batmanHandler
+	http.HandleFunc("/interstellar", interstellarHandler)
+	http.HandleFunc("/interstellarSountrack", trackInterstellarHandler)
 
 	log.Info("starting web-server")
 	err := http.ListenAndServe(":8080", nil)
@@ -239,13 +249,15 @@ func main() {
 
 	log := setupLogger(cfg.Env)
 
-	//log.Info("starting application", slog.Any("cfg", cfg))
+	log.Info("starting application", slog.Any("cfg", cfg))
 
 	log.Info("starting application")
 
 	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.TokenTTL) //General
 
 	go application.GRPCSrv.MustRun()
+
+	//Yandex storage
 
 	//Start HTTP server to serve HTML page
 	handlRequest(log)

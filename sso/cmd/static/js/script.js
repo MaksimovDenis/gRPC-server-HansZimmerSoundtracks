@@ -1,96 +1,296 @@
-console.clear();
-
-const loginBtn = document.getElementById('login');
-const signupBtn = document.getElementById('signup');
-
-loginBtn.addEventListener('click', (e) => {
-	let parent = e.target.parentNode.parentNode;
-	Array.from(e.target.parentNode.parentNode.classList).find((element) => {
-		if(element !== "slide-up") {
-			parent.classList.add('slide-up')
-		}else{
-			signupBtn.parentNode.classList.add('slide-up')
-			parent.classList.remove('slide-up')
-		}
-	});
-});
-
-signupBtn.addEventListener('click', (e) => {
-	let parent = e.target.parentNode;
-	Array.from(e.target.parentNode.classList).find((element) => {
-		if(element !== "slide-up") {
-			parent.classList.add('slide-up')
-		}else{
-			loginBtn.parentNode.parentNode.classList.add('slide-up')
-			parent.classList.remove('slide-up')
-		}
-	});
-});
-
-$(document).ready(function() {
-    $('.signup').submit(function(event) {
-        event.preventDefault(); // Предотвращаем стандартное поведение формы (отправку)
-
-        var email = $('.signup input[type="email"]').val();
-        var password = $('.signup input[type="password"]').val();
-        
-        console.log("Email:", email);
-        console.log("Password:", password);
-        
-        // Отправляем AJAX запрос на сервер
-        $.ajax({
-            type: "POST", // Метод запроса
-            url: "/signup", // URL адрес обработчика на сервере
-            data: JSON.stringify({ email: email, password: password }), // Данные для отправки (преобразованные в JSON строку)
-            contentType: "application/json", // Тип содержимого запроса
-            success: function(response) {
-                // Обработка успешного ответа от сервера
-                console.log("Response from server:", response);
-            },
-            error: function(xhr, status, error) {
-                // Обработка ошибки
-                console.error("Error:", error);
-            }
-        });
-        
-        // Обновляем значения элементов на странице (это можно удалить, если не нужно)
-        $('#emailValue').text(email);
-        $('#passwordValue').text(password);
-        
-        // В этом месте вы можете выполнить другие операции после отправки данных на сервер
-    });
-});
-
-$(document).ready(function() {
-    $('.login').submit(function(event) {
-        event.preventDefault(); // Предотвращаем стандартное поведение формы (отправку)
-
-        var email = $('.login input[type="email"]').val();
-        var password = $('.login input[type="password"]').val();
-        
-        console.log("Email:", email);
-        console.log("Password:", password);
-        
-        // Отправляем AJAX запрос на сервер
-        $.ajax({
-            type: "POST", // Метод запроса
-            url: "/login", // URL адрес обработчика на сервере
-            data: JSON.stringify({ email: email, password: password }), // Данные для отправки (преобразованные в JSON строку)
-            contentType: "application/json", // Тип содержимого запроса
-            success: function(response) {
-                // Обработка успешного ответа от сервера
-                console.log("Response from server:", response);
-            },
-            error: function(xhr, status, error) {
-                // Обработка ошибки
-                console.error("Error:", error);
-            }
-        });
-        
-        // Обновляем значения элементов на странице (это можно удалить, если не нужно)
-        $('#emailValue').text(email);
-        $('#passwordValue').text(password);
-        
-        // В этом месте вы можете выполнить другие операции после отправки данных на сервер
-    });
-});
+$(function () {
+    var playerTrack = $("#player-track"),
+      bgArtwork = $("#bg-artwork"),
+      bgArtworkUrl,
+      albumName = $("#album-name"),
+      trackName = $("#track-name"),
+      albumArt = $("#album-art"),
+      sArea = $("#s-area"),
+      seekBar = $("#seek-bar"),
+      trackTime = $("#track-time"),
+      insTime = $("#ins-time"),
+      sHover = $("#s-hover"),
+      playPauseButton = $("#play-pause-button"),
+      i = playPauseButton.find("i"),
+      tProgress = $("#current-time"),
+      tTime = $("#track-length"),
+      seekT,
+      seekLoc,
+      seekBarPos,
+      cM,
+      ctMinutes,
+      ctSeconds,
+      curMinutes,
+      curSeconds,
+      durMinutes,
+      durSeconds,
+      playProgress,
+      bTime,
+      nTime = 0,
+      buffInterval = null,
+      tFlag = false,
+      albums = "Hans Zimmer",
+      trackNames = [],
+      albumArtworks = "_image",
+      countOfSoundTracks=0,
+      trackUrl = [],
+      playPreviousTrackButton = $("#play-previous"),
+      playNextTrackButton = $("#play-next"),
+      currIndex = -1,
+      imageUrl;
+  
+    function playPause() {
+      setTimeout(function () {
+        if (audio.paused) {
+          playerTrack.addClass("active");
+          albumArt.addClass("active");
+          checkBuffering();
+          i.attr("class", "fas fa-pause");
+          audio.play();
+        } else {
+          playerTrack.removeClass("active");
+          albumArt.removeClass("active");
+          clearInterval(buffInterval);
+          albumArt.removeClass("buffering");
+          i.attr("class", "fas fa-play");
+          audio.pause();
+        }
+      }, 300);
+    }
+  
+    function showHover(event) {
+      seekBarPos = sArea.offset();
+      seekT = event.clientX - seekBarPos.left;
+      seekLoc = audio.duration * (seekT / sArea.outerWidth());
+  
+      sHover.width(seekT);
+  
+      cM = seekLoc / 60;
+  
+      ctMinutes = Math.floor(cM);
+      ctSeconds = Math.floor(seekLoc - ctMinutes * 60);
+  
+      if (ctMinutes < 0 || ctSeconds < 0) return;
+  
+      if (ctMinutes < 0 || ctSeconds < 0) return;
+  
+      if (ctMinutes < 10) ctMinutes = "0" + ctMinutes;
+      if (ctSeconds < 10) ctSeconds = "0" + ctSeconds;
+  
+      if (isNaN(ctMinutes) || isNaN(ctSeconds)) insTime.text("--:--");
+      else insTime.text(ctMinutes + ":" + ctSeconds);
+  
+      insTime.css({ left: seekT, "margin-left": "-21px" }).fadeIn(0);
+    }
+    
+    function hideHover() {
+      sHover.width(0);
+      insTime.text("00:00").css({ left: "0px", "margin-left": "0px" }).fadeOut(0);
+    }
+  
+    function playFromClickedPos() {
+      audio.currentTime = seekLoc;
+      seekBar.width(seekT);
+      hideHover();
+    }
+  
+    function updateCurrTime() {
+      nTime = new Date();
+      nTime = nTime.getTime();
+  
+      if (!tFlag) {
+        tFlag = true;
+        trackTime.addClass("active");
+      }
+  
+      curMinutes = Math.floor(audio.currentTime / 60);
+      curSeconds = Math.floor(audio.currentTime - curMinutes * 60);
+  
+      durMinutes = Math.floor(audio.duration / 60);
+      durSeconds = Math.floor(audio.duration - durMinutes * 60);
+  
+      playProgress = (audio.currentTime / audio.duration) * 100;
+  
+      if (curMinutes < 10) curMinutes = "0" + curMinutes;
+      if (curSeconds < 10) curSeconds = "0" + curSeconds;
+  
+      if (durMinutes < 10) durMinutes = "0" + durMinutes;
+      if (durSeconds < 10) durSeconds = "0" + durSeconds;
+  
+      if (isNaN(curMinutes) || isNaN(curSeconds)) tProgress.text("00:00");
+      else tProgress.text(curMinutes + ":" + curSeconds);
+  
+      if (isNaN(durMinutes) || isNaN(durSeconds)) tTime.text("00:00");
+      else tTime.text(durMinutes + ":" + durSeconds);
+  
+      if (
+        isNaN(curMinutes) ||
+        isNaN(curSeconds) ||
+        isNaN(durMinutes) ||
+        isNaN(durSeconds)
+      )
+        trackTime.removeClass("active");
+      else trackTime.addClass("active");
+  
+      seekBar.width(playProgress + "%");
+  
+      if (playProgress == 100) {
+        i.attr("class", "fa fa-play");
+        seekBar.width(0);
+        tProgress.text("00:00");
+        albumArt.removeClass("buffering").removeClass("active");
+        clearInterval(buffInterval);
+      }
+    }
+  
+    function checkBuffering() {
+      clearInterval(buffInterval);
+      buffInterval = setInterval(function () {
+        if (nTime == 0 || bTime - nTime > 1000) albumArt.addClass("buffering");
+        else albumArt.removeClass("buffering");
+  
+        bTime = new Date();
+        bTime = bTime.getTime();
+      }, 100);
+    }
+  
+    function selectTrack(flag) {
+      if (flag == 0 || flag == 1) ++currIndex;
+      else --currIndex;
+      
+      if (currIndex === countOfSoundTracks) {
+        currIndex = 0;
+      } else if (currIndex<0){
+        currIndex = countOfSoundTracks - 1;
+      }
+  
+      if (currIndex > -1 && currIndex < countOfSoundTracks) {
+        if (flag == 0) i.attr("class", "fa fa-play");
+        else {
+          albumArt.removeClass("buffering");
+          i.attr("class", "fa fa-pause");
+        }
+  
+        seekBar.width(0);
+        trackTime.removeClass("active");
+        tProgress.text("00:00");
+        tTime.text("00:00");
+  
+        currAlbum = albums;
+        currTrackName = trackNames[currIndex];
+        currArtwork = albumArtworks;
+  
+        audio.src = trackUrl[currIndex];
+  
+        nTime = 0;
+        bTime = new Date();
+        bTime = bTime.getTime();
+  
+        if (flag != 0) {
+          audio.play();
+          playerTrack.addClass("active");
+          albumArt.addClass("active");
+  
+          clearInterval(buffInterval);
+          checkBuffering();
+        }
+  
+        albumName.text(currAlbum);
+        trackName.text(currTrackName);
+        albumArt.find("img.active").removeClass("active");
+        $("#" + currArtwork).addClass("active");
+  
+        bgArtworkUrl = $("#" + currArtwork).attr("src");
+  
+        bgArtwork.css({ "background-image": "url(" + bgArtworkUrl + ")" });
+      } else {
+        if (flag == 0 || flag == 1) --currIndex;
+        else ++currIndex;
+      }
+    }
+  
+    function initPlayer() {
+      audio = new Audio();
+  
+      selectTrack(0);
+  
+      audio.loop = false;
+  
+      playPauseButton.on("click", playPause);
+  
+      sArea.mousemove(function (event) {
+        showHover(event);
+      });
+  
+      sArea.mouseout(hideHover);
+  
+      sArea.on("click", playFromClickedPos);
+  
+      $(audio).on("timeupdate", updateCurrTime);
+  
+      $(audio).on("ended", function() {
+        selectTrack(1);
+      });
+  
+      playPreviousTrackButton.on("click", function () {
+        selectTrack(-1);
+      });
+      playNextTrackButton.on("click", function () {
+        selectTrack(1);
+      });
+  
+      // Получение текущего URL
+      const currentURL = window.location.href;
+  
+      let trackURLsEndpoint;
+      let imageUrl;
+      // Примерная логика для определения URL в зависимости от страницы
+      if (currentURL.includes("batman")) {
+        trackURLsEndpoint = '/batmanSountrack';
+        imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/batmanPlayerWallpaper.webp";
+      } else if (currentURL.includes("dune")) {
+          trackURLsEndpoint = '/duneSountrack';
+          imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/dunePlayerWallpaper.webp";
+      } else if (currentURL.includes("inception")) {
+        trackURLsEndpoint = '/inceptionSountrack';
+        imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/inceptionPlyaerWallpaper.webp";
+      } else if (currentURL.includes("piratesOfTheCaribbean")) {
+        trackURLsEndpoint = '/piratesSountrack';
+        imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/piratesOfTheCaribbeanPlayerWallpaper.webp";
+      } else {
+          trackURLsEndpoint = '/interstellarSountrack';
+          imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/interstellarPlayer.webp";
+      }
+      
+      fetch(trackURLsEndpoint)
+      .then(response => response.json())
+      .then(trackURLs => {
+          console.log('Ссылки на треки:', trackURLs);
+          trackUrl = trackURLs;
+          for (let url of trackUrl) {
+            const trackName = url.split('/').pop().split(' - ')[1].replace('.mp3', '');
+            trackNames.push(trackName);
+            countOfSoundTracks++
+        }
+          // Продолжайте инициализацию плеера здесь, используя полученные URL-адреса треков
+      })
+      .catch(error => console.error('Ошибка получения ссылок на треки:', error));
+  
+     // Устанавливаем ссылку на изображение
+     $("#album-art img.active").attr("src", imageUrl);
+  
+     
+    }
+  
+    window.addEventListener('load', function() {
+      var background = document.getElementById('background');
+      background.style.opacity = 0; // Устанавливаем начальную прозрачность фона
+  
+      setTimeout(function() {
+          background.style.opacity = 1; // Постепенно устанавливаем фон непрозрачным
+      }, 100); // Можно изменить задержку, чтобы фон начал появляться после некоторого времени
+  });
+    
+    initPlayer();
+  });
+  
