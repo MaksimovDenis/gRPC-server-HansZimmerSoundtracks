@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	ssov1 "projectAuth/protos/gen/go/sso"
+	"projectAuth/sso/cmd/handlers"
 	"projectAuth/sso/internal/app"
 	"projectAuth/sso/internal/config"
 	"projectAuth/sso/internal/lib/logger/handlers/slogpretty"
@@ -289,14 +290,9 @@ func trackInceptionHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(inceptionSoundrackUrls)
 }
 
-func trackPiratesHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(piratesOfTheCaribbeanSoundrackUrls)
-}
-
 func handlRequest(log *slog.Logger) {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("sso/cmd/static"))))
-	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/", handlers.IndexHandler)
 	http.HandleFunc("/signup", func(w http.ResponseWriter, r *http.Request) {
 		handleRegister(w, r, log)
 	})
@@ -313,7 +309,9 @@ func handlRequest(log *slog.Logger) {
 	http.HandleFunc("/batmanSountrack", trackBatmanHandler)
 	http.HandleFunc("/duneSountrack", trackDuneHandler)
 	http.HandleFunc("/inceptionSountrack", trackInceptionHandler)
-	http.HandleFunc("/piratesSountrack", trackPiratesHandler)
+	http.HandleFunc("/piratesSountrack", func(w http.ResponseWriter, r *http.Request) {
+		handlers.TrackPiratesHandler(w, r, piratesOfTheCaribbeanSoundrackUrls)
+	})
 
 	log.Info("starting web-server")
 	err := http.ListenAndServe(":8080", nil)
