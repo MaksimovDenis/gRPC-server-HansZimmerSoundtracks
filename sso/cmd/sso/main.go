@@ -34,6 +34,7 @@ const (
 	appSecret      = "test-secret"
 	passDefaultLen = 10
 	deltaSeconds   = 1
+	start          = "go run sso/cmd/sso/main.go --config=sso/config/local.yaml"
 )
 
 type Client struct {
