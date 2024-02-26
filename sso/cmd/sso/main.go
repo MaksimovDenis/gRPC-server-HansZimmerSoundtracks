@@ -234,7 +234,6 @@ func handlRequest(log *slog.Logger) {
 
 	// Добавьте tokenMiddleware перед вашим обработчиком batmanHandler
 	http.HandleFunc("/interstellar", interstellarHandler)
-	http.HandleFunc("/interstellarSountrack", trackInterstellarHandler)
 
 	log.Info("starting web-server")
 	err := http.ListenAndServe(":8080", nil)
@@ -258,9 +257,9 @@ func main() {
 	go application.GRPCSrv.MustRun()
 
 	//Yandex storage
-
 	//Start HTTP server to serve HTML page
 	handlRequest(log)
+	imageURLs, interstellarSoundrackUrls, batmanSoundrackUrls, duneSoundrackUrls, inceptionSoundrackUrls, piratesOfTheCaribbeanSoundrackUrls = YandexStorage()
 
 	//Grascefull shutdown
 	stop := make(chan os.Signal, 1)

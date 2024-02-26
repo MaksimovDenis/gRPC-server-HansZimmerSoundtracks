@@ -1,4 +1,4 @@
-package yandexStorage
+package main
 
 import (
 	"context"
