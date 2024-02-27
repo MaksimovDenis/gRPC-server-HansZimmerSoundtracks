@@ -250,13 +250,13 @@ $(function () {
         imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/batmanPlayerWallpaper.webp";
       } else if (currentURL.includes("dune")) {
           trackURLsEndpoint = '/duneSountrack';
-          imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/dunePlayerWallpaper.webp";
+          imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/dunePlayerWallpaper.jpeg";
       } else if (currentURL.includes("inception")) {
         trackURLsEndpoint = '/inceptionSountrack';
-        imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/inceptionPlyaerWallpaper.webp";
+        imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/inceptionPlyaerWallpaper.jpeg";
       } else if (currentURL.includes("piratesOfTheCaribbean")) {
         trackURLsEndpoint = '/piratesSountrack';
-        imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/piratesOfTheCaribbeanPlayerWallpaper.webp";
+        imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/piratesPlayerWallpaper.jpeg";
       } else {
           trackURLsEndpoint = '/interstellarSountrack';
           imageUrl = "https://storage.yandexcloud.net/petprojecthanzzimmer/backgoundimagesPlayer/interstellarPlayer.webp";
