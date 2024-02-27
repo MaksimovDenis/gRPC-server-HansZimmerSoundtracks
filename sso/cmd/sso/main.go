@@ -305,10 +305,18 @@ func handlRequest(log *slog.Logger) {
 	http.HandleFunc("/dune", duneHandler)
 	http.HandleFunc("/inception", inceptionHandler)
 	http.HandleFunc("/piratesOfTheCaribbean", piratesHandler)
-	http.HandleFunc("/interstellarSountrack", trackInterstellarHandler)
-	http.HandleFunc("/batmanSountrack", trackBatmanHandler)
-	http.HandleFunc("/duneSountrack", trackDuneHandler)
-	http.HandleFunc("/inceptionSountrack", trackInceptionHandler)
+	http.HandleFunc("/interstellarSountrack", func(w http.ResponseWriter, r *http.Request) {
+		handlers.TrackInterstellarHandler(w, r, interstellarSoundrackUrls)
+	})
+	http.HandleFunc("/batmanSountrack", func(w http.ResponseWriter, r *http.Request) {
+		handlers.TrackBatmanHandler(w, r, batmanSoundrackUrls)
+	})
+	http.HandleFunc("/duneSountrack", func(w http.ResponseWriter, r *http.Request) {
+		handlers.TrackDuneHandler(w, r, duneSoundrackUrls)
+	})
+	http.HandleFunc("/inceptionSountrack", func(w http.ResponseWriter, r *http.Request) {
+		handlers.TrackInceptionHandler(w, r, inceptionSoundrackUrls)
+	})
 	http.HandleFunc("/piratesSountrack", func(w http.ResponseWriter, r *http.Request) {
 		handlers.TrackPiratesHandler(w, r, piratesOfTheCaribbeanSoundrackUrls)
 	})
