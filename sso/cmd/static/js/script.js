@@ -284,7 +284,6 @@ $(function () {
   
     window.addEventListener('load', function() {
       var background = document.getElementById('background');
-      background.style.opacity = 0; // Устанавливаем начальную прозрачность фона
   
       setTimeout(function() {
           background.style.opacity = 1; // Постепенно устанавливаем фон непрозрачным

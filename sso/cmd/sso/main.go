@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
@@ -40,7 +39,7 @@ const (
 
 // gRPC token
 var tokenExpiration time.Time
-var token string
+var tokenJWT string
 
 // Background images
 var imageURLs []string
@@ -190,7 +189,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
 			return
 		}
 
-		token = respLogin.GetToken()
+		tokenJWT = respLogin.GetToken()
 		tokenExpiration = time.Now().Add(time.Hour)
 	}
 
@@ -200,14 +199,14 @@ func Dial(s string, dialOption grpc.DialOption) {
 	panic("unimplemented")
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
+/*func indexHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, _ := template.ParseFiles("sso/cmd/templates/index.html")
 	tmpl.ExecuteTemplate(w, "index", nil)
 }
 
 func interstellarHandler(w http.ResponseWriter, r *http.Request) {
 	switch {
-	case token == "":
+	case tokenJWT == "":
 		http.Error(w, "Unautorized", http.StatusUnauthorized)
 	case time.Now().After(tokenExpiration):
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -268,27 +267,7 @@ func piratesHandler(w http.ResponseWriter, r *http.Request) {
 		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/piratesOfTheCaribbean.html", "sso/cmd/templates/player.html")
 		tmpl.ExecuteTemplate(w, "piratesOfTheCaribbean", image)
 	}
-}
-
-func trackInterstellarHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(interstellarSoundrackUrls)
-}
-
-func trackBatmanHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(batmanSoundrackUrls)
-}
-
-func trackDuneHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(duneSoundrackUrls)
-}
-
-func trackInceptionHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(inceptionSoundrackUrls)
-}
+}*/
 
 func handlRequest(log *slog.Logger) {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("sso/cmd/static"))))
@@ -300,11 +279,21 @@ func handlRequest(log *slog.Logger) {
 		handleLogin(w, r, log)
 	})
 
-	http.HandleFunc("/interstellar", interstellarHandler)
-	http.HandleFunc("/batman", batmanHandler)
-	http.HandleFunc("/dune", duneHandler)
-	http.HandleFunc("/inception", inceptionHandler)
-	http.HandleFunc("/piratesOfTheCaribbean", piratesHandler)
+	http.HandleFunc("/interstellar", func(w http.ResponseWriter, r *http.Request) {
+		handlers.InterstellarHandler(w, r, tokenJWT, tokenExpiration, imageURLs[3])
+	})
+	http.HandleFunc("/batman", func(w http.ResponseWriter, r *http.Request) {
+		handlers.BatmanHandler(w, r, tokenJWT, tokenExpiration, imageURLs[0])
+	})
+	http.HandleFunc("/dune", func(w http.ResponseWriter, r *http.Request) {
+		handlers.DuneHandler(w, r, tokenJWT, tokenExpiration, imageURLs[1])
+	})
+	http.HandleFunc("/inception", func(w http.ResponseWriter, r *http.Request) {
+		handlers.InceptionHandler(w, r, tokenJWT, tokenExpiration, imageURLs[2])
+	})
+	http.HandleFunc("/piratesOfTheCaribbean", func(w http.ResponseWriter, r *http.Request) {
+		handlers.PiratesHandler(w, r, tokenJWT, tokenExpiration, imageURLs[4])
+	})
 	http.HandleFunc("/interstellarSountrack", func(w http.ResponseWriter, r *http.Request) {
 		handlers.TrackInterstellarHandler(w, r, interstellarSoundrackUrls)
 	})

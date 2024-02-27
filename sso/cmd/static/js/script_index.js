@@ -62,6 +62,9 @@ $(document).ready(function() {
 });
 
 $(document).ready(function() {
+
+    const loginBtn = document.querySelector('.submit-btn');
+
     $('.login').submit(function(event) {
         event.preventDefault(); // Предотвращаем стандартное поведение формы (отправку)
 
@@ -79,7 +82,8 @@ $(document).ready(function() {
             contentType: "application/json", // Тип содержимого запроса
             success: function(response) {
                 // Обработка успешного ответа от сервера
-                console.log("Response from server:", response);
+
+                window.location.href = "/interstellar";
             },
             error: function(xhr, status, error) {
                 // Обработка ошибки
