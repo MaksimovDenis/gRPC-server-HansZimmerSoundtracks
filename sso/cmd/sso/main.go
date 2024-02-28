@@ -123,7 +123,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request, logger *slog.Logger)
 		fmt.Println(password)
 
 		// Создание экземпляра Client
-		client, err := New(context.Background(), logger, "localhost:44044", time.Second, 3)
+		client, err := New(context.Background(), logger, "localhost:44044", time.Hour, 3)
 		if err != nil {
 			http.Error(w, "Failed to create gRPC client", http.StatusInternalServerError)
 			return
@@ -171,7 +171,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
 		fmt.Println(password)
 
 		// Создание экземпляра Client
-		client, err := New(context.Background(), logger, "localhost:44044", time.Second, 3)
+		client, err := New(context.Background(), logger, "localhost:44044", time.Hour, 3)
 		if err != nil {
 			http.Error(w, "Failed to create gRPC client", http.StatusInternalServerError)
 			return
@@ -191,6 +191,9 @@ func handleLogin(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
 
 		tokenJWT = respLogin.GetToken()
 		tokenExpiration = time.Now().Add(time.Hour)
+		/*token := respLogin.GetToken()
+		ctx = context.WithValue(r.Context(), "token", token)
+		r = r.WithContext(ctx)*/
 	}
 
 }
@@ -205,17 +208,14 @@ func Dial(s string, dialOption grpc.DialOption) {
 }
 
 func interstellarHandler(w http.ResponseWriter, r *http.Request) {
-	switch {
-	case tokenJWT == "":
-		http.Error(w, "Unautorized", http.StatusUnauthorized)
-	case time.Now().After(tokenExpiration):
+	token, ok := r.Context().Value("token").(string)
+	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-	default:
-		image := imageURLs[3]
-		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/interstellar.html", "sso/cmd/templates/player.html")
-		tmpl.ExecuteTemplate(w, "interstellar", image)
+		return
 	}
+	fmt.Println(token)
 }
+
 
 func batmanHandler(w http.ResponseWriter, r *http.Request) {
 	switch {
