@@ -2,15 +2,19 @@ FROM golang:1.21.6-alpine AS builder
 
 WORKDIR /usr/local/src
 
-RUN apk --no-cache add bash git make gcc gettext musl-dev
+EXPOSE 8080
 
-#dependencies
-COPY ["go.mod", "go.sum", "./" ] 
+RUN apk --no-cache add bash git make gcc gettext libc-dev
+
+COPY go.mod go.sum ./
 RUN go mod download
 
+COPY . .
 
-#build
-COPY sso ./
-RUN go build -o ./bin/app cmd/sso/main.go 
+COPY sso/config ./sso/config
 
-COPY sso/config/local.yaml ./bin
+COPY ./config /root/.aws/config
+COPY ./credentials /root/.aws/credentials
+
+RUN go build -o ./bin/app sso/cmd/sso/main.go
+ENTRYPOINT [ "./bin/app" ]

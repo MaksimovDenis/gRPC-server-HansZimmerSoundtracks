@@ -191,9 +191,6 @@ func handleLogin(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
 
 		tokenJWT = respLogin.GetToken()
 		tokenExpiration = time.Now().Add(time.Hour)
-		/*token := respLogin.GetToken()
-		ctx = context.WithValue(r.Context(), "token", token)
-		r = r.WithContext(ctx)*/
 	}
 
 }
@@ -201,73 +198,6 @@ func handleLogin(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
 func Dial(s string, dialOption grpc.DialOption) {
 	panic("unimplemented")
 }
-
-/*func indexHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl, _ := template.ParseFiles("sso/cmd/templates/index.html")
-	tmpl.ExecuteTemplate(w, "index", nil)
-}
-
-func interstellarHandler(w http.ResponseWriter, r *http.Request) {
-	token, ok := r.Context().Value("token").(string)
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	fmt.Println(token)
-}
-
-
-func batmanHandler(w http.ResponseWriter, r *http.Request) {
-	switch {
-	case token == "":
-		http.Error(w, "Unautorized", http.StatusUnauthorized)
-	case time.Now().After(tokenExpiration):
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-	default:
-		image := imageURLs[0]
-		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/batman.html", "sso/cmd/templates/player.html")
-		tmpl.ExecuteTemplate(w, "batman", image)
-	}
-}
-
-func duneHandler(w http.ResponseWriter, r *http.Request) {
-	switch {
-	case token == "":
-		http.Error(w, "Unautorized", http.StatusUnauthorized)
-	case time.Now().After(tokenExpiration):
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-	default:
-		image := imageURLs[1]
-		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/dune.html", "sso/cmd/templates/player.html")
-		tmpl.ExecuteTemplate(w, "dune", image)
-	}
-}
-
-func inceptionHandler(w http.ResponseWriter, r *http.Request) {
-	switch {
-	case token == "":
-		http.Error(w, "Unautorized", http.StatusUnauthorized)
-	case time.Now().After(tokenExpiration):
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-	default:
-		image := imageURLs[2]
-		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/inception.html", "sso/cmd/templates/player.html")
-		tmpl.ExecuteTemplate(w, "inception", image)
-	}
-}
-
-func piratesHandler(w http.ResponseWriter, r *http.Request) {
-	switch {
-	case token == "":
-		http.Error(w, "Unautorized", http.StatusUnauthorized)
-	case time.Now().After(tokenExpiration):
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-	default:
-		image := imageURLs[4]
-		tmpl, _ := template.ParseFiles("sso/cmd/templates/header.html", "sso/cmd/templates/piratesOfTheCaribbean.html", "sso/cmd/templates/player.html")
-		tmpl.ExecuteTemplate(w, "piratesOfTheCaribbean", image)
-	}
-}*/
 
 func handlRequest(log *slog.Logger) {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("sso/cmd/static"))))
